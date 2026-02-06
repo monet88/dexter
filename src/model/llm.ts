@@ -110,7 +110,7 @@ export function getChatModel(
 ): BaseChatModel {
   const opts: ModelOpts = { streaming };
 
-  // Check for active custom profile first
+  // Priority 1: Active custom profile from /settings
   const activeProfile = getActiveProfile();
   if (activeProfile) {
     return new ChatOpenAI({
@@ -121,7 +121,17 @@ export function getChatModel(
     });
   }
 
-  // Fallback to prefix-based provider detection
+  // Priority 2: MONET_* env vars for simple custom endpoint
+  if (process.env.MONET_BASE_URL && process.env.MONET_API_KEY) {
+    return new ChatOpenAI({
+      model: modelName || process.env.MONET_MODEL || DEFAULT_MODEL,
+      ...opts,
+      apiKey: process.env.MONET_API_KEY,
+      configuration: { baseURL: process.env.MONET_BASE_URL },
+    });
+  }
+
+  // Priority 3: Prefix-based provider detection
   const prefix = Object.keys(MODEL_PROVIDERS).find((p) => modelName.startsWith(p));
   const factory = prefix ? MODEL_PROVIDERS[prefix] : DEFAULT_MODEL_FACTORY;
   return factory(modelName, opts);
