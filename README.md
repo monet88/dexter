@@ -106,6 +106,34 @@ Or with watch mode for development:
 bun dev
 ```
 
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `/model` | Switch between AI providers (OpenAI, Anthropic, Google, xAI, Ollama) |
+| `/settings` | List custom endpoint profiles |
+| `/settings add` | Add a new custom endpoint profile |
+| `/settings delete <name>` | Remove a profile |
+| `/use <profile>` | Quick switch to a custom profile |
+
+### Custom Endpoints
+
+Dexter supports custom OpenAI-compatible endpoints. This lets you use local models, proxies, or alternative providers.
+
+```bash
+# Add a custom endpoint
+/settings add
+# Follow prompts: name → baseUrl → apiKey → defaultModel
+
+# Switch to it
+/use myprofile
+
+# List all profiles
+/settings
+```
+
+Profiles are stored in `~/.dexter/config.json` and persist across sessions.
+
 ## 📊 How to Evaluate
 
 Dexter includes an evaluation suite that tests the agent against a dataset of financial questions. Evals use LangSmith for tracking and an LLM-as-judge approach for scoring correctness.
