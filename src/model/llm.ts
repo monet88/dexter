@@ -8,6 +8,7 @@ import { StructuredToolInterface } from '@langchain/core/tools';
 import { Runnable } from '@langchain/core/runnables';
 import { z } from 'zod';
 import { DEFAULT_SYSTEM_PROMPT } from '@/agent/prompts';
+import { getActiveProfile } from '@/config/index.js';
 
 export const DEFAULT_PROVIDER = 'openai';
 export const DEFAULT_MODEL = 'gpt-5.2';
@@ -108,6 +109,19 @@ export function getChatModel(
   streaming: boolean = false
 ): BaseChatModel {
   const opts: ModelOpts = { streaming };
+
+  // Check for active custom profile first
+  const activeProfile = getActiveProfile();
+  if (activeProfile) {
+    return new ChatOpenAI({
+      model: modelName || activeProfile.defaultModel,
+      ...opts,
+      apiKey: activeProfile.apiKey || 'dummy',
+      configuration: { baseURL: activeProfile.baseUrl },
+    });
+  }
+
+  // Fallback to prefix-based provider detection
   const prefix = Object.keys(MODEL_PROVIDERS).find((p) => modelName.startsWith(p));
   const factory = prefix ? MODEL_PROVIDERS[prefix] : DEFAULT_MODEL_FACTORY;
   return factory(modelName, opts);

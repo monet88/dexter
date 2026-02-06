@@ -5,6 +5,7 @@ import { getModelsForProvider, getDefaultModelForProvider, type Model } from '..
 import { getOllamaModels } from '../utils/ollama.js';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from '../model/llm.js';
 import { InMemoryChatHistory } from '../utils/in-memory-chat-history.js';
+import { getActiveProfile, setActiveProfile, listProfiles, type Profile } from '../config/index.js';
 
 // ============================================================================
 // Types
@@ -26,7 +27,7 @@ export interface UseModelSelectionResult {
   provider: string;
   model: string;
   inMemoryChatHistoryRef: React.RefObject<InMemoryChatHistory>;
-  
+
   // Actions
   startSelection: () => void;
   cancelSelection: () => void;
@@ -35,7 +36,8 @@ export interface UseModelSelectionResult {
   handleModelInputSubmit: (modelName: string | null) => void;
   handleApiKeyConfirm: (wantsToSet: boolean) => void;
   handleApiKeySubmit: (apiKey: string | null) => void;
-  
+  switchToProfile: (profileName: string) => { success: boolean; error?: string };
+
   // Helpers
   isInSelectionFlow: () => boolean;
 }
@@ -110,7 +112,30 @@ export function useModelSelection(
   const isInSelectionFlow = useCallback(() => {
     return isSelectionState(appState);
   }, [appState]);
-  
+
+  // Switch to a custom profile by name
+  const switchToProfile = useCallback((profileName: string): { success: boolean; error?: string } => {
+    const profiles = listProfiles();
+    const profile = profiles.find((p) => p.name === profileName);
+
+    if (!profile) {
+      const available = profiles.map((p) => p.name).join(', ') || 'none';
+      return { success: false, error: `Profile "${profileName}" not found. Available: ${available}` };
+    }
+
+    try {
+      setActiveProfile(profileName);
+      setProvider('custom');
+      setModel(profile.defaultModel);
+      setSetting('provider', 'custom');
+      setSetting('modelId', profile.defaultModel);
+      inMemoryChatHistoryRef.current = new InMemoryChatHistory(profile.defaultModel);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
+  }, []);
+
   // Provider selection handler
   const handleProviderSelect = useCallback(async (providerId: string | null) => {
     if (providerId) {
@@ -244,6 +269,7 @@ export function useModelSelection(
     handleModelInputSubmit,
     handleApiKeyConfirm,
     handleApiKeySubmit,
+    switchToProfile,
     isInSelectionFlow,
   };
 }

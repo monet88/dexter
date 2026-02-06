@@ -13,11 +13,13 @@ import { ProviderSelector, ModelSelector, ModelInputField } from './components/M
 import { ApiKeyConfirm, ApiKeyInput } from './components/ApiKeyPrompt.js';
 import { DebugPanel } from './components/DebugPanel.js';
 import { HistoryItemView, WorkingIndicator } from './components/index.js';
+import { ProfileInput, ProfileList, SettingsHelp } from './components/SettingsView.js';
 import { getApiKeyNameForProvider, getProviderDisplayName } from './utils/env.js';
 
 import { useModelSelection } from './hooks/useModelSelection.js';
 import { useAgentRunner } from './hooks/useAgentRunner.js';
 import { useInputHistory } from './hooks/useInputHistory.js';
+import { useSettings } from './hooks/useSettings.js';
 
 // Load environment variables
 config({ quiet: true });
@@ -42,6 +44,7 @@ export function CLI() {
     handleModelInputSubmit,
     handleApiKeyConfirm,
     handleApiKeySubmit,
+    switchToProfile,
     isInSelectionFlow,
   } = useModelSelection((errorMsg) => setErrorRef.current?.(errorMsg));
   
@@ -68,7 +71,21 @@ export function CLI() {
     updateAgentResponse,
     resetNavigation,
   } = useInputHistory();
-  
+
+  // Settings state and handlers
+  const {
+    settingsState,
+    profiles,
+    startList,
+    startAdd,
+    showHelp,
+    closeSettings,
+    handleProfileSubmit,
+    handleProfileDelete,
+    handleProfileActivate,
+    isInSettingsFlow,
+  } = useSettings();
+
   // Handle history navigation from Input component
   const handleHistoryNavigate = useCallback((direction: 'up' | 'down') => {
     if (direction === 'up') {
@@ -92,9 +109,53 @@ export function CLI() {
       startSelection();
       return;
     }
-    
+
+    // Handle profile switch command: /use <profile-name>
+    if (query.startsWith('/use ')) {
+      const profileName = query.slice(5).trim();
+      if (!profileName) {
+        setError('Usage: /use <profile-name>');
+        return;
+      }
+      const result = switchToProfile(profileName);
+      if (result.success) {
+        setError(null);
+      } else {
+        setError(result.error ?? 'Failed to switch profile');
+      }
+      return;
+    }
+
+    // Handle settings commands
+    if (query === '/settings' || query === '/settings list') {
+      startList();
+      return;
+    }
+    if (query === '/settings add') {
+      startAdd();
+      return;
+    }
+    if (query === '/settings help') {
+      showHelp();
+      return;
+    }
+    if (query.startsWith('/settings delete ') || query.startsWith('/settings remove ')) {
+      const name = query.replace(/^\/settings (delete|remove) /, '').trim();
+      if (!name) {
+        setError('Usage: /settings delete <profile-name>');
+        return;
+      }
+      const result = handleProfileDelete(name);
+      if (result.success) {
+        setError(null);
+      } else {
+        setError(result.error ?? 'Failed to delete profile');
+      }
+      return;
+    }
+
     // Ignore if not idle (processing or in selection flow)
-    if (isInSelectionFlow() || workingState.status !== 'idle') return;
+    if (isInSelectionFlow() || isInSettingsFlow() || workingState.status !== 'idle') return;
     
     // Save user message to history immediately and reset navigation
     await saveMessage(query);
@@ -105,14 +166,18 @@ export function CLI() {
     if (result?.answer) {
       await updateAgentResponse(result.answer);
     }
-  }, [exit, startSelection, isInSelectionFlow, workingState.status, runQuery, saveMessage, updateAgentResponse, resetNavigation]);
-  
+  }, [exit, startSelection, switchToProfile, setError, isInSelectionFlow, isInSettingsFlow, startList, startAdd, showHelp, handleProfileDelete, workingState.status, runQuery, saveMessage, updateAgentResponse, resetNavigation]);
+
   // Handle keyboard shortcuts
   useInput((input, key) => {
     // Escape key - cancel selection flows or running agent
     if (key.escape) {
       if (isInSelectionFlow()) {
         cancelSelection();
+        return;
+      }
+      if (isInSettingsFlow()) {
+        closeSettings();
         return;
       }
       if (isProcessing) {
@@ -193,7 +258,46 @@ export function CLI() {
       </Box>
     );
   }
-  
+
+  // Render settings screens
+  if (settingsState === 'list') {
+    return (
+      <Box flexDirection="column">
+        <ProfileList
+          profiles={profiles}
+          onSelect={handleProfileActivate}
+          onDelete={handleProfileDelete}
+        />
+        <Box marginTop={1}>
+          <Text color="gray">Esc to close</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (settingsState === 'add') {
+    const existingNames = profiles.map((p) => p.name);
+    return (
+      <Box flexDirection="column">
+        <ProfileInput
+          onSubmit={handleProfileSubmit}
+          existingNames={existingNames}
+        />
+      </Box>
+    );
+  }
+
+  if (settingsState === 'help') {
+    return (
+      <Box flexDirection="column">
+        <SettingsHelp />
+        <Box marginTop={1}>
+          <Text color="gray">Esc to close</Text>
+        </Box>
+      </Box>
+    );
+  }
+
   // Main chat interface
   return (
     <Box flexDirection="column">
