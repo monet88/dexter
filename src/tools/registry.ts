@@ -1,9 +1,9 @@
 import { StructuredToolInterface } from '@langchain/core/tools';
-import { createFinancialSearch, createFinancialMetrics, createReadFilings } from './finance/index.js';
+import { createFinancialSearch, createFinancialMetrics, createReadFilings, getVnIncomeStatements, getVnBalanceSheets, getVnCashFlowStatements, getVnRatios, getVnNews } from './finance/index.js';
 import { exaSearch, tavilySearch } from './search/index.js';
 import { skillTool, SKILL_TOOL_DESCRIPTION } from './skill.js';
 import { browserTool } from './browser/index.js';
-import { FINANCIAL_SEARCH_DESCRIPTION, FINANCIAL_METRICS_DESCRIPTION, WEB_SEARCH_DESCRIPTION, READ_FILINGS_DESCRIPTION, BROWSER_DESCRIPTION } from './descriptions/index.js';
+import { FINANCIAL_SEARCH_DESCRIPTION, FINANCIAL_METRICS_DESCRIPTION, WEB_SEARCH_DESCRIPTION, READ_FILINGS_DESCRIPTION, BROWSER_DESCRIPTION, VN_FUNDAMENTALS_DESCRIPTION, VN_NEWS_DESCRIPTION } from './descriptions/index.js';
 import { discoverSkills } from '../skills/index.js';
 
 /**
@@ -46,6 +46,31 @@ export function getToolRegistry(model: string): RegisteredTool[] {
       name: 'browser',
       tool: browserTool,
       description: BROWSER_DESCRIPTION,
+    },
+    {
+      name: 'get_vn_income_statements',
+      tool: getVnIncomeStatements,
+      description: VN_FUNDAMENTALS_DESCRIPTION,
+    },
+    {
+      name: 'get_vn_balance_sheets',
+      tool: getVnBalanceSheets,
+      description: VN_FUNDAMENTALS_DESCRIPTION,
+    },
+    {
+      name: 'get_vn_cash_flow_statements',
+      tool: getVnCashFlowStatements,
+      description: VN_FUNDAMENTALS_DESCRIPTION,
+    },
+    {
+      name: 'get_vn_ratios',
+      tool: getVnRatios,
+      description: VN_FUNDAMENTALS_DESCRIPTION,
+    },
+    {
+      name: 'get_vn_news',
+      tool: getVnNews,
+      description: VN_NEWS_DESCRIPTION,
     },
   ];
 

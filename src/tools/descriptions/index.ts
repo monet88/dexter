@@ -7,3 +7,5 @@ export { FINANCIAL_METRICS_DESCRIPTION } from './financial-metrics.js';
 export { WEB_SEARCH_DESCRIPTION } from './web-search.js';
 export { READ_FILINGS_DESCRIPTION } from './read-filings.js';
 export { BROWSER_DESCRIPTION } from './browser.js';
+export { VN_FUNDAMENTALS_DESCRIPTION } from './vn-fundamentals.js';
+export { VN_NEWS_DESCRIPTION } from './vn-news.js';
