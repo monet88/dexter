@@ -47,6 +47,16 @@ const PROVIDERS: Provider[] = [
     ],
   },
   {
+    displayName: 'Proxypal',
+    providerId: 'proxypal',
+    models: [
+      { id: 'gpt-5.2', displayName: 'GPT 5.2' },
+      { id: 'gpt-4.1', displayName: 'GPT 4.1' },
+      { id: 'claude-sonnet-4-5', displayName: 'Sonnet 4.5' },
+      { id: 'claude-opus-4-6', displayName: 'Opus 4.6' },
+    ],
+  },
+  {
     displayName: 'OpenRouter',
     providerId: 'openrouter',
     models: [], // User types model name directly
