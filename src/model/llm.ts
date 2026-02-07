@@ -7,7 +7,7 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { StructuredToolInterface } from '@langchain/core/tools';
 import { Runnable } from '@langchain/core/runnables';
 import { z } from 'zod';
-import { DEFAULT_SYSTEM_PROMPT } from '@/agent/prompts';
+import { getDefaultSystemPrompt } from '@/agent/prompts';
 import { getActiveProfile } from '@/config/index.js';
 
 export const DEFAULT_PROVIDER = 'openai';
@@ -80,6 +80,15 @@ const MODEL_PROVIDERS: Record<string, ModelFactory> = {
         baseURL: 'https://api.x.ai/v1',
       },
     }),
+  'proxypal:': (name, opts) =>
+    new ChatOpenAI({
+      model: name.replace(/^proxypal:/, ''),
+      ...opts,
+      apiKey: process.env.PROXYPAL_API_KEY || 'proxypal-local',
+      configuration: {
+        baseURL: 'https://proxypal.azacc.store/v1',
+      },
+    }),
   'openrouter:': (name, opts) =>
     new ChatOpenAI({
       model: name.replace(/^openrouter:/, ''),
@@ -147,7 +156,7 @@ interface CallLlmOptions {
 
 export async function callLlm(prompt: string, options: CallLlmOptions = {}): Promise<unknown> {
   const { model = DEFAULT_MODEL, systemPrompt, outputSchema, tools, signal } = options;
-  const finalSystemPrompt = systemPrompt || DEFAULT_SYSTEM_PROMPT;
+  const finalSystemPrompt = systemPrompt || getDefaultSystemPrompt();
 
   const promptTemplate = ChatPromptTemplate.fromMessages([
     ['system', finalSystemPrompt],

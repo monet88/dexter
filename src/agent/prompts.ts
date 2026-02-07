@@ -1,5 +1,47 @@
 import { buildToolDescriptions } from '../tools/registry.js';
 import { buildSkillMetadataSection, discoverSkills } from '../skills/index.js';
+import { loadCustomInstructions } from './load-instructions.js';
+
+// ============================================================================
+// Ticker Routing Guidance
+// ============================================================================
+
+const TICKER_ROUTING_GUIDANCE = `
+## Stock Ticker Format
+
+### US Stocks (default)
+- Use ticker directly: AAPL, MSFT, GOOGL, NVDA
+- Use standard financial tools: financial_search, financial_metrics
+
+### Vietnam Stocks
+- MUST add .VN suffix: FPT.VN, VNM.VN, VIC.VN, HPG.VN
+- Use VN-specific tools: get_vn_income_statements, get_vn_balance_sheets, get_vn_cash_flow_statements, get_vn_ratios, get_vn_news
+- If user mentions Vietnamese company names, add .VN suffix
+
+### Common VN Tickers (Auto-detect Names)
+When user mentions Vietnamese company names, automatically map to .VN tickers:
+- "FPT" or "FPT Corporation" -> FPT.VN (technology)
+- "Vinamilk" -> VNM.VN (dairy)
+- "Vingroup" -> VIC.VN (conglomerate)
+- "Hoa Phat" or "Hoa Phat" -> HPG.VN (steel)
+- "Vinhomes" -> VHM.VN (real estate)
+- "Mobile World" or "The Gioi Di Dong" -> MWG.VN (retail)
+- "Techcombank" -> TCB.VN (banking)
+- "Vietcombank" -> VCB.VN (banking)
+- "Masan" -> MSN.VN (consumer goods)
+- "Sabeco" or "Bia Sai Gon" -> SAB.VN (beverages)
+
+### Data Limits
+- Guest tier: 4 periods max, 20 req/min
+- Community tier: 8 periods max, 60 req/min
+- Register free at vnstocks.com for Community tier
+
+### Examples
+- "Apple financials" -> financial_search(query: "Apple financials")
+- "FPT financials" -> get_vn_income_statements(ticker: "FPT.VN")
+- "Vinamilk balance sheet" -> get_vn_balance_sheets(ticker: "VNM.VN")
+- "Hoa Phat ratios" -> get_vn_ratios(ticker: "HPG.VN")
+`;
 
 // ============================================================================
 // Helper Functions
@@ -50,7 +92,8 @@ ${skillList}
 /**
  * Default system prompt used when no specific prompt is provided.
  */
-export const DEFAULT_SYSTEM_PROMPT = `You are Dexter, a helpful AI assistant.
+export function getDefaultSystemPrompt(): string {
+  return `You are Dexter, a helpful AI assistant.
 
 Current date: ${getCurrentDate()}
 
@@ -87,7 +130,8 @@ Keep tables compact:
 - Tickers not names: "AAPL" not "Apple Inc."
 - Abbreviate: Rev, Op Inc, Net Inc, OCF, FCF, GM, OM, EPS
 - Numbers compact: 102.5B not $102,466,000,000
-- Omit units in cells if header has them`;
+- Omit units in cells if header has them${buildInstructionsSection()}`;
+}
 
 // ============================================================================
 // System Prompt
@@ -120,6 +164,8 @@ ${toolDescriptions}
 - Only respond directly for: conceptual definitions, stable historical facts, or conversational queries
 
 ${buildSkillsSection()}
+
+${TICKER_ROUTING_GUIDANCE}
 
 ## Behavior
 
@@ -157,7 +203,17 @@ Keep tables compact:
 - Tickers not names: "AAPL" not "Apple Inc."
 - Abbreviate: Rev, Op Inc, Net Inc, OCF, FCF, GM, OM, EPS
 - Numbers compact: 102.5B not $102,466,000,000
-- Omit units in cells if header has them`;
+- Omit units in cells if header has them${buildInstructionsSection()}`;
+}
+
+/**
+ * Build custom instructions section from DEXTER.md files.
+ * Returns empty string if no files found.
+ */
+function buildInstructionsSection(): string {
+  const instructions = loadCustomInstructions();
+  if (!instructions) return '';
+  return `\n\n## User Instructions\n\n${instructions}`;
 }
 
 // ============================================================================
