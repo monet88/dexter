@@ -38,9 +38,10 @@ export interface HistoryItem {
 
 interface HistoryItemViewProps {
   item: HistoryItem;
+  verbose?: boolean;
 }
 
-export function HistoryItemView({ item }: HistoryItemViewProps) {
+export function HistoryItemView({ item, verbose = false }: HistoryItemViewProps) {
   // Add spacing after completed items, but not during processing
   const isComplete = item.status === 'complete' || item.status === 'error' || item.status === 'interrupted';
   

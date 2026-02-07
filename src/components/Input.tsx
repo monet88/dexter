@@ -5,6 +5,8 @@ import { colors } from '../theme.js';
 import { useTextBuffer } from '../hooks/useTextBuffer.js';
 import { cursorHandlers } from '../utils/input-key-handlers.js';
 import { CursorText } from './CursorText.js';
+import { CommandSuggestions } from './CommandSuggestions.js';
+import { useCommandSuggestions } from '../hooks/useCommandSuggestions.js';
 
 interface InputProps {
   onSubmit: (value: string) => void;
@@ -16,6 +18,7 @@ interface InputProps {
 
 export function Input({ onSubmit, historyValue, onHistoryNavigate }: InputProps) {
   const { text, cursorPosition, actions } = useTextBuffer();
+  const cmdSuggestions = useCommandSuggestions(text);
 
   // Update input buffer when history navigation changes
   useEffect(() => {
@@ -31,6 +34,33 @@ export function Input({ onSubmit, historyValue, onHistoryNavigate }: InputProps)
   // Handle all input
   useInput((input, key) => {
     const ctx = { text, cursorPosition };
+
+    // Tab key - complete command when suggestions open
+    if (key.tab && cmdSuggestions.isOpen) {
+      const completed = cmdSuggestions.selectCurrent();
+      if (completed) {
+        actions.setValue(completed);
+      }
+      return;
+    }
+
+    // Escape closes suggestions
+    if (key.escape && cmdSuggestions.isOpen) {
+      actions.clear();
+      return;
+    }
+
+    // Up/Down when suggestions open - navigate suggestions
+    if (cmdSuggestions.isOpen) {
+      if (key.upArrow) {
+        cmdSuggestions.moveUp();
+        return;
+      }
+      if (key.downArrow) {
+        cmdSuggestions.moveDown();
+        return;
+      }
+    }
 
     // Up arrow: move cursor up if not on first line, else history navigation
     if (key.upArrow) {
@@ -108,8 +138,16 @@ export function Input({ onSubmit, historyValue, onHistoryNavigate }: InputProps)
       return;
     }
 
-    // Handle submit (plain Enter)
+    // Handle submit (plain Enter) - complete + execute when suggestions open
     if (key.return) {
+      if (cmdSuggestions.isOpen) {
+        const completed = cmdSuggestions.selectCurrent();
+        if (completed) {
+          onSubmit(completed.trim());
+          actions.clear();
+        }
+        return;
+      }
       const val = text.trim();
       if (val) {
         onSubmit(val);
@@ -140,6 +178,12 @@ export function Input({ onSubmit, historyValue, onHistoryNavigate }: InputProps)
         </Text>
         <CursorText text={text} cursorPosition={cursorPosition} />
       </Box>
+      {cmdSuggestions.isOpen && (
+        <CommandSuggestions
+          commands={cmdSuggestions.suggestions}
+          selectedIndex={cmdSuggestions.selectedIndex}
+        />
+      )}
     </Box>
   );
 }

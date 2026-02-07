@@ -15,11 +15,13 @@ import { DebugPanel } from './components/DebugPanel.js';
 import { HistoryItemView, WorkingIndicator } from './components/index.js';
 import { ProfileInput, ProfileList, SettingsHelp } from './components/SettingsView.js';
 import { getApiKeyNameForProvider, getProviderDisplayName } from './utils/env.js';
+import { colors } from './theme.js';
 
 import { useModelSelection } from './hooks/useModelSelection.js';
 import { useAgentRunner } from './hooks/useAgentRunner.js';
 import { useInputHistory } from './hooks/useInputHistory.js';
 import { useSettings } from './hooks/useSettings.js';
+import { useVerboseMode } from './hooks/useVerboseMode.js';
 
 // Load environment variables
 config({ quiet: true });
@@ -85,6 +87,9 @@ export function CLI() {
     handleProfileActivate,
     isInSettingsFlow,
   } = useSettings();
+
+  // Verbose mode toggle
+  const { isVerbose, toggle: toggleVerbose } = useVerboseMode();
 
   // Handle history navigation from Input component
   const handleHistoryNavigate = useCallback((direction: 'up' | 'down') => {
@@ -170,6 +175,12 @@ export function CLI() {
 
   // Handle keyboard shortcuts
   useInput((input, key) => {
+    // Ctrl+O - toggle verbose mode
+    if (key.ctrl && input === 'o') {
+      toggleVerbose();
+      return;
+    }
+
     // Escape key - cancel selection flows or running agent
     if (key.escape) {
       if (isInSelectionFlow()) {
@@ -305,7 +316,7 @@ export function CLI() {
       
       {/* All history items (queries, events, answers) */}
       {history.map(item => (
-        <HistoryItemView key={item.id} item={item} />
+        <HistoryItemView key={item.id} item={item} verbose={isVerbose} />
       ))}
       
       {/* Error display */}
@@ -328,7 +339,14 @@ export function CLI() {
       </Box>
       
       {/* Debug Panel - set show={false} to hide */}
-      <DebugPanel maxLines={8} show={true} />
+      <DebugPanel maxLines={isVerbose ? 50 : 8} show={true} />
+
+      {/* Verbose mode indicator */}
+      {isVerbose && (
+        <Box>
+          <Text color={colors.warning}>[VERBOSE]</Text>
+        </Box>
+      )}
     </Box>
   );
 }
